@@ -1,1 +1,1 @@
-web: sh setup.sh && streamlit run gen_analysis.py
+web: sh setup.sh && streamlit run bilstm.py
