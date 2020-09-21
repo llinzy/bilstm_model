@@ -23,7 +23,20 @@ data3=data3.drop_duplicates(keep='first')
 data3['occ_group']=data3['occ_group'].fillna('None')
 data3=data3[data3.occ_group!='None']
 
-#create glove dictionary
+datalist1=glob.glob('glovesplit4.2/*.csv')
+datalist2=glob.glob('glovesplit4/*.csv')
+
+combined_datalist=[pd.read_csv(i) for i in datalist] 
+combined_datalist2=[pd.read_csv(i) for i in datalist2] 
+
+combined_datalist=pd.concat([pd.DataFrame(combined_datalist[i]) for i in range(len(combined_datalist))], sort=True)
+combined_datalist2=pd.concat([pd.DataFrame(combined_datalist2[i]) for i in range(len(combined_datalist2))], sort=True)
+
+glove_data=combined_datalist.append(combined_datalist2)
+
+embed_index=dict()
+
+embed_index[glove_dic.iloc[:,0]=glove_dic.iloc[:,1]
 
 word_tokenizer = Tokenizer()
 word_tokenizer.fit_on_texts(data3.no_stopwords_stemmed)
@@ -192,6 +205,8 @@ df_encoded['predicted_class_']=[skill_decoding[i] for i in df_encoded['predicted
 df_encoded_=df_encoded[['actual_class_','predicted_class_','text2']].reset_index()
 
 df_encoded_.columns=['id', 'actual_class_', 'predicted_class_', 'words']
+
+df_encoded_            
              
 
      
