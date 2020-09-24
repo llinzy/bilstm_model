@@ -12,6 +12,7 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from sklearn import preprocessing
 from numpy import zeros
+import streamlit as st
 
 data3=pd.read_csv('d_group2.csv')
 data3=data3.iloc[:,1:]
@@ -23,20 +24,18 @@ data3=data3.drop_duplicates(keep='first')
 data3['occ_group']=data3['occ_group'].fillna('None')
 data3=data3[data3.occ_group!='None']
 
-datalist1=glob.glob('glovesplit4.2/*.csv')
-datalist2=glob.glob('glovesplit4/*.csv')
+datalist1=glob.glob('glove_file_*')
 
-combined_datalist=[pd.read_csv(i) for i in datalist] 
-combined_datalist2=[pd.read_csv(i) for i in datalist2] 
+combined_datalist=[pd.read_csv(i) for i in datalist1]
 
-combined_datalist=pd.concat([pd.DataFrame(combined_datalist[i]) for i in range(len(combined_datalist))], sort=True)
-combined_datalist2=pd.concat([pd.DataFrame(combined_datalist2[i]) for i in range(len(combined_datalist2))], sort=True)
+s_=list(itertools.chain.from_iterable([list(i.word) for i in combined_datalist]))
+values_=list(itertools.chain.from_iterable([list(i.values_) for i in combined_datalist]))
 
-glove_data=combined_datalist.append(combined_datalist2)
+values_=[np.array(re.findall(r'[\d\.]{1,8}',str(i)),dtype='float32') for i in values_]
 
-embed_index=dict()
+values_2=[i[:100] for i in values_]
 
-embed_index[glove_dic.iloc[:,0]=glove_dic.iloc[:,1]
+embed_index=dict(zip(words_,values_2))
 
 word_tokenizer = Tokenizer()
 word_tokenizer.fit_on_texts(data3.no_stopwords_stemmed)
@@ -50,7 +49,8 @@ for word, index in word_tokenizer.word_index.items():
     embedding_vector = embed_index.get(word)
     if embedding_vector is not None:
         embedding_matrix[index] = embedding_vector
-        
+
+len_sent=list([len(i) for i in embedded_skill])
 length_long_sentence=max(len_sent)
 
 padded_sentences = pad_sequences(embedded_skill, length_long_sentence, padding='post')
@@ -85,33 +85,33 @@ valid = torch.utils.data.TensorDataset(x_cv, y_cv)
 
 train_loader = torch.utils.data.DataLoader(train, batch_size=70, shuffle=True)
 valid_loader = torch.utils.data.DataLoader(valid, batch_size=70, shuffle=False)
+
+
 class BiLSTM(nn.Module):
-    
-    def __init__(self):
-        super(BiLSTM, self).__init__()
-        self.hidden_size = 164
-        drp = 0.4
-        n_classes = len(le.classes_)
-        self.embedding = nn.Embedding(max_features, embed_size)
-        self.embedding.weight = nn.Parameter(torch.tensor(embedding_matrix, dtype=torch.float32))
-        self.embedding.weight.requires_grad = True
-        self.lstm = nn.LSTM(embed_size, self.hidden_size, bidirectional=True, batch_first=True)
-        self.linear = nn.Linear(self.hidden_size*4 , 164)
-        self.relu = nn.ReLU()
-        self.out = nn.Linear(164, n_classes)
+  def __init__(self):
+    super(BiLSTM, self).__init__()
+    self.hidden_size = 164
+    drp = 0.4
+    n_classes = len(le.classes_)
+    self.embedding = nn.Embedding(max_features, embed_size)
+    self.embedding.weight = nn.Parameter(torch.tensor(embedding_matrix, dtype=torch.float32))
+    self.embedding.weight.requires_grad = True
+    self.lstm = nn.LSTM(embed_size, self.hidden_size, bidirectional=True, batch_first=True)
+    self.linear = nn.Linear(self.hidden_size*4 , 164)
+    self.relu = nn.ReLU()
+    self.out = nn.Linear(164, n_classes)
 
 
-    def forward(self, x):
-        h_embedding = self.embedding(x)
-        h_lstm, _ = self.lstm(h_embedding)
-        avg_pool = torch.mean(h_lstm, 1)
-        max_pool, _ = torch.max(h_lstm, 1)
-        conc = torch.cat(( avg_pool, max_pool), 1)
-        conc = self.relu(self.linear(conc))
-        out = self.out(conc)
-        return out
-        
-        
+  def forward(self, x):
+    h_embedding = self.embedding(x)
+    h_lstm, _ = self.lstm(h_embedding)
+    avg_pool = torch.mean(h_lstm, 1)
+    max_pool, _ = torch.max(h_lstm, 1)
+    conc = torch.cat(( avg_pool, max_pool), 1)
+    conc = self.relu(self.linear(conc))
+    out = self.out(conc)
+    return out
+      
 embed_size=100
 max_features=vocab_length
 n_epochs = 7
@@ -120,7 +120,6 @@ loss_fn = nn.CrossEntropyLoss(reduction='sum')
 optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=0.002, weight_decay=0)
 model.cpu()
 
-%%time
 val_preds1=[]
 X1=[]
 Y1=[]
@@ -134,15 +133,15 @@ for epoch in range(n_epochs):
     model.train()
     avg_loss = 0.  
     for i, (x_batch, y_batch) in enumerate(train_loader):
+
         
-        y_pred = model(x_batch)
-       
-        loss = loss_fn(y_pred, y_batch)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        avg_loss += loss.item() / len(train_loader)
-    
+      y_pred = model(x_batch)
+      
+      loss = loss_fn(y_pred, y_batch)
+      optimizer.zero_grad()
+      loss.backward()
+      optimizer.step()
+      avg_loss += loss.item() / len(train_loader)
     
     model.eval()        
     avg_val_loss = 0.
@@ -154,14 +153,14 @@ for epoch in range(n_epochs):
     
     for i, (x_batch, y_batch) in enumerate(valid_loader):
         
-        y_pred = model(x_batch).detach()
-        avg_val_loss += loss_fn(y_pred, y_batch).item() / len(valid_loader)
-        
-        val_preds[i * 70:(i+1) * 70] =F.sigmoid(y_pred).cpu().numpy()
-        X[i * 70:(i+1) * 70]=x_batch.cpu().numpy()
-        Y[i * 70:(i+1) * 70]=y_batch.cpu().numpy()
-        ind[i * 70:(i+1) * 70]=i
-        val_loss[i * 70:(i+1) * 70]=avg_val_loss
+      y_pred = model(x_batch).detach()
+      avg_val_loss += loss_fn(y_pred, y_batch).item() / len(valid_loader)
+      
+      val_preds[i * 70:(i+1) * 70] =F.sigmoid(y_pred).cpu().numpy()
+      X[i * 70:(i+1) * 70]=x_batch.cpu().numpy()
+      Y[i * 70:(i+1) * 70]=y_batch.cpu().numpy()
+      ind[i * 70:(i+1) * 70]=i
+      val_loss[i * 70:(i+1) * 70]=avg_val_loss
         
     val_preds1.append(val_preds)
     X1.append(X)
@@ -176,9 +175,14 @@ for epoch in range(n_epochs):
     elapsed_time = time.time() - start_time 
     output.append('Epoch {}/{} \t loss={:.4f} \t val_loss={:.4f}  \t val_acc={:.4f}  \t time={:.2f}s'.format(
                 epoch + 1, n_epochs, avg_loss, avg_val_loss, val_accuracy, elapsed_time))
+    
+    print('Epoch {}/{} \t loss={:.4f} \t val_loss={:.4f}  \t val_acc={:.4f}  \t time={:.2f}s'.format(
+                epoch + 1, n_epochs, avg_loss, avg_val_loss, val_accuracy, elapsed_time))
                 
+
 output_df=pd.DataFrame([i.split('\t') for i in output])
 output_df.columns=['epoch','loss','validation_loss','validation_accuracy','time']
+#output_df
 
 Y1_s=[int(i) for i in Y1[3]]
 pred=list([i.argmax() for i in val_preds1[3]])
@@ -206,7 +210,15 @@ df_encoded_=df_encoded[['actual_class_','predicted_class_','text2']].reset_index
 
 df_encoded_.columns=['id', 'actual_class_', 'predicted_class_', 'words']
 
-df_encoded_            
-             
+st.write('Predict Skill Category with Bidirectional Long-term Short-term Memory (biLSTM)')
 
-     
+st.subheader('Prediction Result Loss & Accuracy Report')
+st.write(output_df)
+
+st.subheader('Results Data')
+df_cat_default_type=st.selectbox('Select ID', list(df_encoded_.id.unique()))
+                          
+df_cat_df=df_encoded_[df_encoded_.id==df_cat_default_type]
+
+st.write(df_cat_df.iloc[:,:2])     
+st.write(df_cat_df.iloc[:,3])
