@@ -1,6 +1,7 @@
 import time
 import pandas as pd
 import numpy as np
+import re
 import glob
 import torch
 import itertools
@@ -28,7 +29,7 @@ datalist1=glob.glob('glove_file_*')
 
 combined_datalist=[pd.read_csv(i) for i in datalist1]
 
-s_=list(itertools.chain.from_iterable([list(i.word) for i in combined_datalist]))
+words_=list(itertools.chain.from_iterable([list(i.word) for i in combined_datalist]))
 values_=list(itertools.chain.from_iterable([list(i.values_) for i in combined_datalist]))
 
 values_=[np.array(re.findall(r'[\d\.]{1,8}',str(i)),dtype='float32') for i in values_]
