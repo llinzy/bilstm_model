@@ -177,7 +177,7 @@ for epoch in range(n_epochs):
     output.append('Epoch {}/{} \t loss={:.4f} \t val_loss={:.4f}  \t val_acc={:.4f}  \t time={:.2f}s'.format(
                 epoch + 1, n_epochs, avg_loss, avg_val_loss, val_accuracy, elapsed_time))
     
-    print('Epoch {}/{} \t loss={:.4f} \t val_loss={:.4f}  \t val_acc={:.4f}  \t time={:.2f}s'.format(
+    st.write('Epoch {}/{}, loss={:.4f}, val_loss={:.4f}, val_acc={:.4f}, time={:.2f}s'.format(
                 epoch + 1, n_epochs, avg_loss, avg_val_loss, val_accuracy, elapsed_time))
                 
 
