@@ -1,4 +1,4 @@
-torch==1.8.0+cpu
+torch==2.4.0+cpu
 pandas
 streamlit
 numpy
